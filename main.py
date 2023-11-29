@@ -1,99 +1,59 @@
-import arcade
-from froggerhelper import WINDOW_WIDTH, WINDOW_HEIGHT, PLAYER_SIZE, VEHICLE_SIZE, TURTLE_SIZE, SAFE_ZONE_HEIGHT
-from froggerhelper import create_vehicles, create_turtles, create_player
 
+
+import arcade
+from froggerhelper import create_player, create_vehicles, create_turtles
 
 class FroggerGame(arcade.Window):
     def __init__(self):
-        super().__init__(WINDOW_WIDTH, WINDOW_HEIGHT, "Frogger Game")
-        arcade.set_background_color(arcade.color.BLACK)
-        self.vehicles_left_to_right = create_vehicles()
-        self.vehicles_right_to_left = create_vehicles()
-        self.turtles_left_to_right = create_turtles()
-        self.turtles_right_to_left = create_turtles()
+        super().__init__(800, 600, "Frogger Game")
         self.player = create_player()
-        self.is_winner = False
-        self.is_loser = False
-
-        # Load sounds during initialization
+        self.vehicles_left = create_vehicles(-1, 3)
+        self.vehicles_right = create_vehicles(1, 3)
+        self.turtles_left_sprites = create_turtles(-1, 3)
+        self.turtles_right_sprites = create_turtles(1, 3)
         self.jump_sound = arcade.load_sound("jump_sound.wav")
-        self.win_sound = arcade.load_sound("win_sound.wav")
-        self.lose_sound = arcade.load_sound("lose_sound.wav")
+
+    def setup(self):
+        arcade.set_background_color(arcade.color.BLUE)
 
     def on_draw(self):
         arcade.start_render()
-        # Draw the safe zones, road, and river
-        arcade.draw_rectangle_filled(WINDOW_WIDTH // 2, SAFE_ZONE_HEIGHT // 2, WINDOW_WIDTH, SAFE_ZONE_HEIGHT,
-                                     arcade.color.GREEN)
-        arcade.draw_rectangle_filled(WINDOW_WIDTH // 2, WINDOW_HEIGHT - SAFE_ZONE_HEIGHT // 2, WINDOW_WIDTH,
-                                     SAFE_ZONE_HEIGHT, arcade.color.GREEN)
-        arcade.draw_rectangle_filled(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2, WINDOW_WIDTH, SAFE_ZONE_HEIGHT,
-                                     arcade.color.BLUE)
-        arcade.draw_rectangle_filled(WINDOW_WIDTH // 2, SAFE_ZONE_HEIGHT + SAFE_ZONE_HEIGHT // 2, WINDOW_WIDTH,
-                                     SAFE_ZONE_HEIGHT, arcade.color.GRAY)
-
-        # Draw sprites
-        self.vehicles_left_to_right.draw()
-        self.vehicles_right_to_left.draw()
-        self.turtles_left_to_right.draw()
-        self.turtles_right_to_left.draw()
+        self.turtles_left_sprites.draw()
+        self.turtles_right_sprites.draw()
+        self.vehicles_left.draw()
+        self.vehicles_right.draw()
         self.player.draw()
 
-        # Draw game over messages
-        if self.is_winner:
-            arcade.draw_text("You Win!", WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2, arcade.color.WHITE, font_size=50,
-                             anchor_x="center")
-        elif self.is_loser:
-            arcade.draw_text("Game Over", WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2, arcade.color.RED, font_size=50,
-                             anchor_x="center")
-
     def update(self, delta_time):
-        if not self.is_winner and not self.is_loser:
-            # Update vehicle and turtle positions
-            self.vehicles_left_to_right.update()
-            self.vehicles_right_to_left.update()
-            self.turtles_left_to_right.update()
-            self.turtles_right_to_left.update()
+        self.turtles_left_sprites.update()
+        self.turtles_right_sprites.update()
+        self.vehicles_left.update()
+        self.vehicles_right.update()
+        self.player.update()
 
-            # Check for collisions with turtles
-            turtles_collided_left = arcade.check_for_collision_with_list(self.player, self.turtles_left_to_right)
-            turtles_collided_right = arcade.check_for_collision_with_list(self.player, self.turtles_right_to_left)
+        # Check for collisions here
 
-            # Check if the player has collided with any turtles
-            if turtles_collided_left or turtles_collided_right:
-                self.is_loser = True
-                arcade.play_sound(self.lose_sound)
-
-            # Check if the player has reached the top safe zone
-            if self.player.center_y > WINDOW_HEIGHT - SAFE_ZONE_HEIGHT // 2:
-                self.is_winner = True
-                arcade.play_sound(self.win_sound)
-
-            # Update player position
-            self.player.update()
-
-    def on_key_press(self, symbol, modifiers):
-        # Move the player when a key is pressed
-        if symbol == arcade.key.W:
-            self.player.change_y = 5  # Adjust the speed as needed
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.W:
+            self.player.change_y = 5
             arcade.play_sound(self.jump_sound)
-        elif symbol == arcade.key.A:
+        elif key == arcade.key.A:
             self.player.change_x = -5
-        elif symbol == arcade.key.D:
+        elif key == arcade.key.D:
             self.player.change_x = 5
+        elif key == arcade.key.S:
+            self.player.change_y = -5
 
-    def on_key_release(self, symbol, modifiers):
-        # Stop player movement when a key is released
-        if symbol == arcade.key.W:
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.W or key == arcade.key.S:
             self.player.change_y = 0
-        elif symbol == arcade.key.A or symbol == arcade.key.D:
+        elif key == arcade.key.A or key == arcade.key.D:
             self.player.change_x = 0
-
 
 def main():
     window = FroggerGame()
+    window.setup()
     arcade.run()
-
 
 if __name__ == "__main__":
     main()
