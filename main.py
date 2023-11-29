@@ -1,46 +1,6 @@
 import arcade
-import random
-from froggerhelper import WINDOW_WIDTH
-from froggerhelper import WINDOW_HEIGHT
-from froggerhelper import PLAYER_SIZE
-from froggerhelper import VEHICLE_SIZE
-from froggerhelper import TURTLE_SIZE
-from froggerhelper import SAFE_ZONE_HEIGHT
-import froggerhelper
-
-# Function to load images
-def load_image(file_path, scale):
-    return arcade.load_texture(file_path, scale=scale)
-
-
-# Function to initialize vehicles
-def create_vehicles():
-    vehicles = arcade.SpriteList()
-    for _ in range(5):
-        vehicle = arcade.Sprite("vehicle.png", 0.5)
-        vehicle.center_x = random.randint(0, WINDOW_WIDTH)
-        vehicle.center_y = random.randint(SAFE_ZONE_HEIGHT, WINDOW_HEIGHT - SAFE_ZONE_HEIGHT)
-        vehicles.append(vehicle)
-    return vehicles
-
-
-# Function to initialize turtles
-def create_turtles():
-    turtles = arcade.SpriteList()
-    for _ in range(5):
-        turtle = arcade.Sprite("turtle.png", 0.5)
-        turtle.center_x = random.randint(0, WINDOW_WIDTH)
-        turtle.center_y = random.randint(SAFE_ZONE_HEIGHT, WINDOW_HEIGHT - SAFE_ZONE_HEIGHT)
-        turtles.append(turtle)
-    return turtles
-
-
-# Function to initialize player
-def create_player():
-    player = arcade.Sprite("frog.png", 0.5)
-    player.center_x = WINDOW_WIDTH // 2
-    player.center_y = SAFE_ZONE_HEIGHT // 2
-    return player
+from froggerhelper import WINDOW_WIDTH, WINDOW_HEIGHT, PLAYER_SIZE, VEHICLE_SIZE, TURTLE_SIZE, SAFE_ZONE_HEIGHT
+from froggerhelper import create_vehicles, create_turtles, create_player
 
 
 class FroggerGame(arcade.Window):
@@ -54,6 +14,11 @@ class FroggerGame(arcade.Window):
         self.player = create_player()
         self.is_winner = False
         self.is_loser = False
+
+        # Load sounds during initialization
+        self.jump_sound = arcade.load_sound("jump_sound.wav")
+        self.win_sound = arcade.load_sound("win_sound.wav")
+        self.lose_sound = arcade.load_sound("lose_sound.wav")
 
     def on_draw(self):
         arcade.start_render()
@@ -90,44 +55,45 @@ class FroggerGame(arcade.Window):
             self.turtles_left_to_right.update()
             self.turtles_right_to_left.update()
 
-            # Check for collisions with vehicles
-            if arcade.check_for_collision_with_list(self.player, self.vehicles_left_to_right) or \
-                    arcade.check_for_collision_with_list(self.player, self.vehicles_right_to_left):
-                self.is_loser = True
-                arcade.play_sound(arcade.load_sound("lose_sound.wav"))
-
             # Check for collisions with turtles
-            turtles_collided = arcade.check_for_collision_with_list(self.player,
-                                                                    self.turtles_left_to_right + self.turtles_right_to_left)
-            if turtles_collided:
-                # Move player with the turtle
-                for turtle in turtles_collided:
-                    self.player.center_x += turtle.change_x
-                    self.player.center_y += turtle.change_y
+            turtles_collided_left = arcade.check_for_collision_with_list(self.player, self.turtles_left_to_right)
+            turtles_collided_right = arcade.check_for_collision_with_list(self.player, self.turtles_right_to_left)
 
-                # Check if the player has gone off the window while riding a turtle
-                if self.player.center_x < 0 or self.player.center_x > WINDOW_WIDTH or \
-                        self.player.center_y < SAFE_ZONE_HEIGHT or self.player.center_y > WINDOW_HEIGHT - SAFE_ZONE_HEIGHT:
-                    self.is_loser = True
-                    arcade.play_sound(arcade.load_sound("lose_sound.wav"))
+            # Check if the player has collided with any turtles
+            if turtles_collided_left or turtles_collided_right:
+                self.is_loser = True
+                arcade.play_sound(self.lose_sound)
 
             # Check if the player has reached the top safe zone
             if self.player.center_y > WINDOW_HEIGHT - SAFE_ZONE_HEIGHT // 2:
                 self.is_winner = True
-                arcade.play_sound(arcade.load_sound("win_sound.wav"))
+                arcade.play_sound(self.win_sound)
 
-    def on_key_press(self, key, modifiers):
+            # Update player position
+            self.player.update()
+
+    def on_key_press(self, symbol, modifiers):
         # Move the player when a key is pressed
-        if key == arcade.key.W:
-            self.player.change_y = PLAYER_SIZE
-            arcade.play_sound(arcade.load_sound("jump_sound.wav"))
+        if symbol == arcade.key.W:
+            self.player.change_y = 5  # Adjust the speed as needed
+            arcade.play_sound(self.jump_sound)
+        elif symbol == arcade.key.A:
+            self.player.change_x = -5
+        elif symbol == arcade.key.D:
+            self.player.change_x = 5
 
-    def on_key_release(self, key, modifiers):
+    def on_key_release(self, symbol, modifiers):
         # Stop player movement when a key is released
-        if key == arcade.key.W:
+        if symbol == arcade.key.W:
             self.player.change_y = 0
+        elif symbol == arcade.key.A or symbol == arcade.key.D:
+            self.player.change_x = 0
+
+
+def main():
+    window = FroggerGame()
+    arcade.run()
 
 
 if __name__ == "__main__":
-    window = FroggerGame()
-    arcade.run()
+    main()
