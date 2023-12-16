@@ -77,7 +77,34 @@ class FroggerGame(arcade.Window):
 
 
        self.last_collision_time = 0
+       self.lives = 3  # Initial number of lives
 
+       self.setup_lives_display()
+
+   def setup_lives_display(self):
+        self.lives_label = arcade.Text(f"Lives: {self.lives}", 10, 10, arcade.color.BLACK, 16)
+
+   def update_lives_display(self):
+        self.lives_label.text = f"Lives: {self.lives}"
+
+   def on_update(self, delta_time):
+        if self.game_state != "frozen":
+            self.vehicle_sprites.update()
+            self.turtle_sprites.update()
+
+            for vehicle in self.vehicle_sprites:
+                if arcade.check_for_collision(self.frog_sprite, vehicle):
+                    self.handle_collision_lose()
+
+            turtle_hit_list = arcade.check_for_collision_with_list(self.frog_sprite, self.turtle_sprites)
+            if turtle_hit_list:
+                self.handle_collision_ride(turtle_hit_list[0])
+
+            if self.frog_sprite.center_y > SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2 and not self.has_won:
+                self.handle_win()
+
+            if self.frog_sprite.center_y < SAFE_ZONE_HEIGHT // 2 and not turtle_hit_list:
+                self.handle_collision_lose()
 
    def on_update(self, delta_time):
         if self.game_state != "frozen":
@@ -118,28 +145,32 @@ class FroggerGame(arcade.Window):
            self.freeze_game()
 
 
+
    def handle_collision_lose(self):
-       print("You lose!")
+        current_time = time.time()
+        if current_time - self.last_collision_time > 1:
+            arcade.play_sound(self.lose_sound)
+            self.last_collision_time = current_time
 
+            self.lives -= 1
+            self.update_lives_display()
 
-       current_time = time.time()
-       if current_time - self.last_collision_time > 1:
-           arcade.play_sound(self.lose_sound)
-           self.last_collision_time = current_time
+            if self.lives <= 0:
+                self.handle_game_over()
+            else:
+                # Reset the frog to the bottom if there are remaining lives
+                self.frog_sprite.center_x = SCREEN_WIDTH // 2
+                self.frog_sprite.center_y = SAFE_ZONE_HEIGHT // 2
 
+   def handle_game_over(self):
+        print("Game Over! You lose!")
 
-           lose_message = "YOU LOSE!"
-           self.lose_message_sprite = arcade.Text(lose_message, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
-                                                  arcade.color.RED, 40, align="center", anchor_x="center",
-                                                  anchor_y="center", width=SCREEN_WIDTH)
+        # Freeze the game state
+        self.freeze_game()
 
-
-           self.frog_sprite.change_x = 0
-           self.frog_sprite.change_y = 0
-
-
-           self.game_state = "lost"
-           self.freeze_game()
+        # Draw the "You lose!" message directly
+        arcade.draw_text("YOU LOSE!", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+                         arcade.color.RED, 40, align="center", anchor_x="center", anchor_y="center")
 
 
    def handle_collision_ride(self, turtle):
@@ -256,22 +287,30 @@ class FroggerGame(arcade.Window):
 
        self.vehicle_sprites.extend([vehicle4, vehicle5, vehicle6])
 
+
+   def handle_game_over(self):
+        print("Game Over!")
+        self.freeze_game()
+
 #draw out the images
    def on_draw(self):
-       arcade.start_render()
-       self.setup_water()
-       self.setup_road()
-       self.vehicle_sprites.draw()
-       self.turtle_sprites.draw()
-       self.safe_zone_sprites.draw()
-       self.frog_sprite.draw()
+        arcade.start_render()
+        self.setup_water()
+        self.setup_road()
+        self.vehicle_sprites.draw()
+        self.turtle_sprites.draw()
+        self.safe_zone_sprites.draw()
+        self.frog_sprite.draw()
 
+        if hasattr(self, 'win_message_sprite'):
+            self.win_message_sprite.draw()
 
-       if hasattr(self, 'lose_message_sprite'):
-           self.lose_message_sprite.draw()
+        if self.game_state == "frozen" and self.lives <= 0:
+            arcade.draw_text("YOU LOSE!", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+                             arcade.color.RED, 40, width=SCREEN_WIDTH, align="center",
+                             anchor_x="center", anchor_y="center")
 
-       if hasattr(self, 'win_message_sprite'):
-           self.win_message_sprite.draw()  # Add this line to draw the win message
+        self.lives_label.draw()
 
    def display_win_message(self):
        win_message = "YOU WIN!"
