@@ -80,28 +80,35 @@ class FroggerGame(arcade.Window):
 
 
    def on_update(self, delta_time):
-       if self.game_state != "frozen":
-           self.vehicle_sprites.update()
-           self.turtle_sprites.update()
+        if self.game_state != "frozen":
+            self.vehicle_sprites.update()
+            self.turtle_sprites.update()
 
+            for vehicle in self.vehicle_sprites:
+                if arcade.check_for_collision(self.frog_sprite, vehicle):
+                    self.handle_collision_lose()
 
-           for vehicle in self.vehicle_sprites:
-               if arcade.check_for_collision(self.frog_sprite, vehicle):
-                   self.handle_collision_lose()
+            turtle_hit_list = arcade.check_for_collision_with_list(self.frog_sprite, self.turtle_sprites)
+            if turtle_hit_list:
+                self.handle_collision_ride(turtle_hit_list[0])
 
+            if self.frog_sprite.center_y > SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2 and not self.has_won:
+                self.handle_win()
 
-           turtle_hit_list = arcade.check_for_collision_with_list(self.frog_sprite, self.turtle_sprites)
-           if turtle_hit_list:
-               self.handle_collision_ride(turtle_hit_list[0])
+            if self.frog_sprite.center_y < SAFE_ZONE_HEIGHT // 2 and not turtle_hit_list:
+                self.handle_collision_lose()
 
+            # Check if the frog has reached the top safe zone
+            if self.has_won:
+                self.display_win_message()
 
-           if self.frog_sprite.center_y > SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2 and not self.has_won:
-               self.handle_win()
-
-
-           if self.frog_sprite.center_y < SAFE_ZONE_HEIGHT // 2 and not turtle_hit_list:
-               self.handle_collision_lose()
-
+   def display_win_message(self):
+        win_message = "YOU WIN!"
+        self.win_message_sprite = arcade.Text(win_message, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+                                              arcade.color.GREEN, 40, align="center", anchor_x="center",
+                                              anchor_y="center", width=SCREEN_WIDTH)
+        self.win_message_sprite.draw()
+        self.freeze_game()
 
    def handle_win(self):
        if self.frog_sprite.center_y > SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2 and not self.has_won:
@@ -139,11 +146,11 @@ class FroggerGame(arcade.Window):
        self.frog_sprite.center_x = turtle.center_x
        self.frog_sprite.center_y = turtle.center_y
 
-
+#freeze the game if you die
    def freeze_game(self):
        self.game_state = "frozen"
 
-
+#creating my safe zones with the grass.png image
    def setup_safe_zones(self):
        top_safe_zone = arcade.Sprite("grass.png", center_x=SCREEN_WIDTH // 2, center_y=SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2)
        top_safe_zone.height = SAFE_ZONE_HEIGHT
@@ -197,7 +204,7 @@ class FroggerGame(arcade.Window):
        self.frog_sprite.center_x = SCREEN_WIDTH // 2
        self.frog_sprite.center_y = SAFE_ZONE_HEIGHT // 2
 
-
+#setup the turtles and directions
    def setup_turtles(self):
        self.turtle_sprites = arcade.SpriteList()
 
@@ -223,7 +230,7 @@ class FroggerGame(arcade.Window):
 
        self.turtle_sprites.extend([turtle4, turtle5, turtle6])
 
-
+#setup the vehicles and directions
    def setup_vehicles(self):
        self.vehicle_sprites = arcade.SpriteList()
 
@@ -249,7 +256,7 @@ class FroggerGame(arcade.Window):
 
        self.vehicle_sprites.extend([vehicle4, vehicle5, vehicle6])
 
-
+#draw out the images
    def on_draw(self):
        arcade.start_render()
        self.setup_water()
@@ -263,10 +270,20 @@ class FroggerGame(arcade.Window):
        if hasattr(self, 'lose_message_sprite'):
            self.lose_message_sprite.draw()
 
+       if hasattr(self, 'win_message_sprite'):
+           self.win_message_sprite.draw()  # Add this line to draw the win message
 
+   def display_win_message(self):
+       win_message = "YOU WIN!"
+       self.win_message_sprite = arcade.Text(win_message, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+                                             arcade.color.GREEN, 40, align="center", anchor_x="center",
+                                             anchor_y="center", width=SCREEN_WIDTH)
+       self.freeze_game()
+
+#user key presses
    def on_key_press(self, key, modifiers):
        if self.game_state == "playing":
-           # Move the frog when WASD keys are pressed with the adjusted movement distance
+
            if key == arcade.key.W:
                self.frog_sprite.center_y += MOVEMENT_DISTANCE
            elif key == arcade.key.A:
@@ -280,7 +297,7 @@ class FroggerGame(arcade.Window):
            # Play jump sound
            arcade.play_sound(self.jump_sound)
 
-
+#call the function
 def main():
    print("Main function called")
    game = FroggerGame()
