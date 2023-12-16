@@ -1,3 +1,5 @@
+
+#modules
 import arcade
 import time
 
@@ -9,10 +11,11 @@ SAFE_ZONE_HEIGHT = 100
 WATER_COLOR = arcade.color.BLUE
 ROAD_COLOR = arcade.color.GRAY
 FROG_SIZE = 50
-MOVEMENT_DISTANCE = 25
+MOVEMENT_DISTANCE = 30
 JUMP_SOUND_FILE = "jump_sound.wav"
 WIN_SOUND_FILE = "win_sound.wav"
 LOSE_SOUND_FILE = "lose_sound.wav"
+# Constants
 
 
 class Turtle(arcade.Sprite):
@@ -77,9 +80,16 @@ class FroggerGame(arcade.Window):
 
 
        self.last_collision_time = 0
-       self.lives = 3  # Initial number of lives
+       self.lives = 3  #number of lives
 
        self.setup_lives_display()
+
+       self.last_turtle = None
+       self.has_jumped = False
+       self.can_jump_to_safezone = False
+
+       if self.turtle_sprites:
+           self.last_turtle = self.turtle_sprites[0]
 
    def setup_lives_display(self):
         self.lives_label = arcade.Text(f"Lives: {self.lives}", 10, 10, arcade.color.BLACK, 16)
@@ -119,15 +129,14 @@ class FroggerGame(arcade.Window):
             if turtle_hit_list:
                 self.handle_collision_ride(turtle_hit_list[0])
 
-            if self.frog_sprite.center_y > SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2 and not self.has_won:
+            if self.frog_sprite.center_y > SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2 and not self.on_turtle:
                 self.handle_win()
 
             if self.frog_sprite.center_y < SAFE_ZONE_HEIGHT // 2 and not turtle_hit_list:
                 self.handle_collision_lose()
 
-            # Check if the frog has reached the top safe zone
-            if self.has_won:
-                self.display_win_message()
+
+            self.has_jumped = False
 
    def display_win_message(self):
         win_message = "YOU WIN!"
@@ -158,17 +167,17 @@ class FroggerGame(arcade.Window):
             if self.lives <= 0:
                 self.handle_game_over()
             else:
-                # Reset the frog to the bottom if there are remaining lives
+                # Reset the frog to the bottom if they have lives
                 self.frog_sprite.center_x = SCREEN_WIDTH // 2
                 self.frog_sprite.center_y = SAFE_ZONE_HEIGHT // 2
 
    def handle_game_over(self):
         print("Game Over! You lose!")
 
-        # Freeze the game state
+        # Freeze the game
         self.freeze_game()
 
-        # Draw the "You lose!" message directly
+        # Draw the "You lose!"
         arcade.draw_text("YOU LOSE!", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
                          arcade.color.RED, 40, align="center", anchor_x="center", anchor_y="center")
 
@@ -320,21 +329,58 @@ class FroggerGame(arcade.Window):
        self.freeze_game()
 
 #user key presses
+
    def on_key_press(self, key, modifiers):
-       if self.game_state == "playing":
+        if self.game_state == "playing":
+            if key == arcade.key.W and not self.has_jumped:
+                # Check if the frog is on a turtle
+                on_turtle = any(turtle.left <= self.frog_sprite.center_x <= turtle.right and turtle.bottom <= self.frog_sprite.center_y <= turtle.top for turtle in self.turtle_sprites)
+                if on_turtle and not self.can_jump_to_safezone:
 
-           if key == arcade.key.W:
-               self.frog_sprite.center_y += MOVEMENT_DISTANCE
-           elif key == arcade.key.A:
-               self.frog_sprite.center_x -= MOVEMENT_DISTANCE
-           elif key == arcade.key.S:
-               self.frog_sprite.center_y -= MOVEMENT_DISTANCE
-           elif key == arcade.key.D:
-               self.frog_sprite.center_x += MOVEMENT_DISTANCE
+                    closest_turtle = min(self.turtle_sprites,
+                                         key=lambda turtle: abs(self.frog_sprite.center_x - turtle.center_x))
+
+                    # order of current turtle in the list
+                    current_turtle_index = self.turtle_sprites.index(closest_turtle)
+
+                    # Get the next turtle in the list
+                    next_turtle_index = (current_turtle_index + 1) % len(self.turtle_sprites)
+                    next_turtle = self.turtle_sprites[next_turtle_index]
+
+                    # Jump only if on the closest turtle and the next turtle is in front
+                    if (
+                            closest_turtle.left <= self.frog_sprite.center_x <= closest_turtle.right
+                            and closest_turtle.bottom <= self.frog_sprite.center_y <= closest_turtle.top
+                            and self.frog_sprite.center_x < next_turtle.center_x
+                    ):
+                        self.frog_sprite.center_x = next_turtle.center_x
+                        self.frog_sprite.center_y = next_turtle.center_y
+                        self.on_turtle = True
+                        self.can_jump_to_safezone = True
+                else:
+                    # Move upward if not on a turtle
+                    self.frog_sprite.center_y += MOVEMENT_DISTANCE
+                    self.on_turtle = False
+
+                    # Check if the frog reaches the safezone
+                    if self.frog_sprite.center_y > SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2 and self.can_jump_to_safezone:
+                        self.handle_win()
+                        self.can_jump_to_safezone = False
 
 
-           # Play jump sound
-           arcade.play_sound(self.jump_sound)
+                # Play jump sound
+                arcade.play_sound(self.jump_sound)
+
+            elif key == arcade.key.A:
+                self.frog_sprite.center_x -= MOVEMENT_DISTANCE
+                self.on_turtle = False
+            elif key == arcade.key.S:
+                self.frog_sprite.center_y -= MOVEMENT_DISTANCE
+                self.on_turtle = False
+            elif key == arcade.key.D:
+                self.frog_sprite.center_x += MOVEMENT_DISTANCE
+                self.on_turtle = False
+
 
 #call the function
 def main():
