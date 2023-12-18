@@ -149,7 +149,7 @@ class FroggerGame(arcade.Window):
    def handle_win(self):
        if self.frog_sprite.center_y > SCREEN_HEIGHT - SAFE_ZONE_HEIGHT // 2 and not self.has_won:
            self.has_won = True
-           print("You win!")
+           #print("You win!") debugging
            arcade.play_sound(self.win_sound)
            self.freeze_game()
 
@@ -172,7 +172,7 @@ class FroggerGame(arcade.Window):
                 self.frog_sprite.center_y = SAFE_ZONE_HEIGHT // 2
 
    def handle_game_over(self):
-        print("Game Over! You lose!")
+        #print("Game Over!") debugging
 
         # Freeze the game
         self.freeze_game()
@@ -303,23 +303,28 @@ class FroggerGame(arcade.Window):
 
 #draw out the images
    def on_draw(self):
-        arcade.start_render()
-        self.setup_water()
-        self.setup_road()
-        self.vehicle_sprites.draw()
-        self.turtle_sprites.draw()
-        self.safe_zone_sprites.draw()
-        self.frog_sprite.draw()
+       arcade.start_render()
+       self.setup_water()
+       self.setup_road()
+       self.vehicle_sprites.draw()
+       self.turtle_sprites.draw()
+       self.safe_zone_sprites.draw()
+       self.frog_sprite.draw()
 
-        if hasattr(self, 'win_message_sprite'):
-            self.win_message_sprite.draw()
+       if hasattr(self, 'win_message_sprite'):
+           self.win_message_sprite.draw()
 
-        if self.game_state == "frozen" and self.lives <= 0:
-            arcade.draw_text("YOU LOSE!", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
-                             arcade.color.RED, 40, width=SCREEN_WIDTH, align="center",
-                             anchor_x="center", anchor_y="center")
+       if self.game_state == "frozen" and self.has_won:
+           arcade.draw_text("YOU WIN!", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+                            arcade.color.GREEN, 40, width=SCREEN_WIDTH, align="center",
+                            anchor_x="center", anchor_y="center")
 
-        self.lives_label.draw()
+       if self.game_state == "frozen" and self.lives <= 0:
+           arcade.draw_text("YOU LOSE!", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+                            arcade.color.RED, 40, width=SCREEN_WIDTH, align="center",
+                            anchor_x="center", anchor_y="center")
+
+       self.lives_label.draw()
 
    def display_win_message(self):
        win_message = "YOU WIN!"
@@ -384,11 +389,9 @@ class FroggerGame(arcade.Window):
 
 #call the function
 def main():
-   print("Main function called")
+   #print("Main function called") i was debugging
    game = FroggerGame()
    arcade.run()
 
 
-if __name__ == "__main__":
-   main()
-
+main()
